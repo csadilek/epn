@@ -4,12 +4,12 @@ import org.epn.api.Event;
 
 public class BasicEvent<T> implements Event<T> {
 
-  private T data;
-  
+  private final T data;
+
   public BasicEvent(final T data) {
     this.data = data;
   }
-  
+
   @Override
   public T get() {
     return data;
@@ -18,6 +18,6 @@ public class BasicEvent<T> implements Event<T> {
   @Override
   public String toString() {
     return "Event [data=" + data + "]";
-  }  
-  
+  }
+
 }

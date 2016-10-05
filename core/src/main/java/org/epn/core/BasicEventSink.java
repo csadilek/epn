@@ -9,18 +9,18 @@ import org.reactivestreams.Subscription;
 
 public class BasicEventSink<T> implements EventSink<T> {
 
-  private List<T> data = new ArrayList<T>();
-  
+  private final List<T> data = new ArrayList<T>();
+
   @Override
-  public void onSubscribe(Subscription s) {
+  public void onSubscribe(final Subscription s) {
     s.request(Long.MAX_VALUE);
   }
 
   @Override
-  public void onNext(Event<T> t) {
+  public void onNext(final Event<T> t) {
     data.add(t.get());
   }
-  
+
   public List<T> getData() {
     return data;
   }

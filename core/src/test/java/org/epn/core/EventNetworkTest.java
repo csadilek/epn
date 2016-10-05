@@ -57,7 +57,7 @@ public class EventNetworkTest {
 
     assertArrayEquals(new String[] { "00", "11", "22", "33", "44", "55" }, sink.getData().toArray());
   }
-
+  
   /**
    *<pre>
    *                                  
@@ -73,6 +73,40 @@ public class EventNetworkTest {
    */
   @Test
   public void sourceToFanOutThenFiltersThenSink() {
+    final TestEventSource source = new TestEventSource();
+    final TestEventSink sink1 = new TestEventSink();
+    final TestEventSink sink2 = new TestEventSink();
+
+    EventNetwork
+      .fromSource(source)
+      .split()
+      .top()
+        .filter(i -> i < 10)
+        .consumedBy(sink1)
+      .bottom()
+        .filter(i -> i >= 10 && i < 20)
+        .consumedBy(sink2)        
+      .start();
+
+    assertArrayEquals(new Integer[] { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }, sink1.getData().toArray());
+    assertArrayEquals(new Integer[] { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19 }, sink2.getData().toArray());
+  }
+
+  /**
+   *<pre>
+   *                                  
+   *                                  ________         ________
+   *                  _______        |        |       |        |
+   * ________        |       | ----> | Filter | ----> |  Sink  |
+   *|        |       |       |       |________|       |________|
+   *| Source | ----> | Split |        ________         ________
+   *|________|       |       |       |        |       |        |
+   *                 |_______| ----> | Filter | ----> |  Sink  |
+   *                                 |________|       |________|
+   *
+   */
+  @Test
+  public void sourceToFanOutWithSelectorThenFiltersThenSink() {
     final TestEventSource source = new TestEventSource();
     final TestEventSink sink1 = new TestEventSink();
     final TestEventSink sink2 = new TestEventSink();
@@ -107,6 +141,33 @@ public class EventNetworkTest {
    */
   @Test
   public void sourcesToTransformersThenFanInThenSink() {
+    final TestEventSource source1 = new TestEventSource(5);
+    final TestEventSource source2 = new TestEventSource(5);
+    final TestEventSink sink = new TestEventSink();
+    
+    EventNetwork
+      .join(source1, source2)
+      .consumedBy(sink)
+      .start();
+      
+    assertArrayEquals(new Integer[] { 0, 0, 1, 1, 2, 2, 3, 3, 4, 4 }, sink.getData().toArray());
+  }
+  
+  /**
+   *<pre>
+   *                                  
+   *  ________         _____________
+   * |        |       |             |        ________
+   * | Source | ----> | Transformer |       |        |        ________
+   * |________|       |_____________| ----> |        |       |        |
+   *  ________         _____________        |  Join  | ----> |  Sink  |
+   * |        |       |             | ----> |        |       |________|
+   * | Source | ----> | Transformer |       |________|
+   * |________|       |_____________|                         
+   *
+   */
+  @Test
+  public void sourcesToTransformersThenFanInWithCombinerThenSink() {
     final TestEventSource source1 = new TestEventSource(10);
     final TestEventSource source2 = new TestEventSource(10);
     final TestEventSink sink = new TestEventSink();

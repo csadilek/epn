@@ -1,5 +1,7 @@
 package org.epn.core;
 
+import java.util.Optional;
+
 import org.epn.api.Event;
 import org.epn.api.FanOutEventProcessor;
 import org.reactivestreams.Subscription;
@@ -10,7 +12,8 @@ public class BasicFanOutEventProcessor<E> extends BasicBiEventSource<E> implemen
   
   public enum Outlet {
     TOP,
-    BOTTOM;
+    BOTTOM,
+    BOTH;
   };
   
   @FunctionalInterface
@@ -18,17 +21,27 @@ public class BasicFanOutEventProcessor<E> extends BasicBiEventSource<E> implemen
     Outlet select(E e);
   }
 
-  private OutletSelector<E> selector;
+  private Optional<OutletSelector<E>> selector;
+  
+  public BasicFanOutEventProcessor() {
+    this.selector = Optional.empty();
+  }
   
   public BasicFanOutEventProcessor(OutletSelector<E> selector) {
-    this.selector = selector;
+    this.selector =  Optional.of(selector);
   }
   
   @Override
-  public void onNext(Event<E> e) {
-    final Outlet outlet = selector.select(e.get());
-    final BasicEventSource<E> source = (outlet.equals(Outlet.TOP)) ? top : bottom; 
-    source.notifySubscribers(e);
+  public void onNext(Event<E> event) {
+    final Outlet outlet = selector.orElse(e -> Outlet.BOTH).select(event.get());
+    if (outlet == Outlet.BOTH) {
+      top.notifySubscribers(event);
+      bottom.notifySubscribers(event);
+    }
+    else {
+      final BasicEventSource<E> source = (outlet == Outlet.TOP) ? top : bottom; 
+      source.notifySubscribers(event);
+    }
     subscription.request(1);
   }
   

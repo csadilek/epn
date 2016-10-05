@@ -23,9 +23,14 @@ public class EventNetwork {
     return new EpnNode<E, TerminalEpnNode<E>>(source);
   }
   
-  public static <E> EpnNode<E, TerminalFanInEpnNode<E>> join(EventSource<E> top, EventSource<E> bottom, BiFunction<E, E, E> joiner) {
+  public static <E> EpnNode<E, TerminalFanInEpnNode<E>> join(EventSource<E> top, EventSource<E> bottom) {
     FanInEpnNode<E, TerminalEpnNode<E>> fanInEpnNode = new FanInEpnNode<E, TerminalEpnNode<E>>(top, bottom);
-    return fanInEpnNode.join(joiner);
+    return fanInEpnNode.join();
+  }
+  
+  public static <E> EpnNode<E, TerminalFanInEpnNode<E>> join(EventSource<E> top, EventSource<E> bottom, BiFunction<E, E, E> combiner) {
+    FanInEpnNode<E, TerminalEpnNode<E>> fanInEpnNode = new FanInEpnNode<E, TerminalEpnNode<E>>(top, bottom);
+    return fanInEpnNode.join(combiner);
   }
 
   public interface Node {};
@@ -85,10 +90,18 @@ public class EventNetwork {
       return this.processedBy(transformer);
     }
     
+    public <O> FanOutEpnTopNode<E, C> split() {
+      final BasicFanOutEventProcessor<E> processor = new BasicFanOutEventProcessor<>();
+      return split(processor);
+    }
+    
     public <O> FanOutEpnTopNode<E, C> split(Predicate<E> p) {
       final BasicFanOutEventProcessor<E> processor = new BasicFanOutEventProcessor<>(
           e -> p.test(e) ? Outlet.TOP : Outlet.BOTTOM);
-
+      return split(processor);
+    }
+    
+    public <O> FanOutEpnTopNode<E, C> split(BasicFanOutEventProcessor<E> processor) {
       source.subscribe(processor);
       return new FanOutEpnTopNode<E, C>(root, continuation, processor.getTop(), processor.getBottom());
     }
@@ -158,8 +171,13 @@ public class EventNetwork {
       this.bottom = bottom;
     }
 
-    public EpnNode<E, TerminalFanInEpnNode<E>> join(final BiFunction<E, E, E> joiner) {
-      final BasicFanInEventProcessor<E> processor = new BasicFanInEventProcessor<E>(top, bottom, joiner);
+    public EpnNode<E, TerminalFanInEpnNode<E>> join() {
+      final BasicFanInEventProcessor<E> processor = new BasicFanInEventProcessor<E>(top, bottom);
+      return new EpnNode<>(root, processor, new TerminalFanInEpnNode<E>(root, top, bottom) );
+    }
+    
+    public EpnNode<E, TerminalFanInEpnNode<E>> join(final BiFunction<E, E, E> combiner) {
+      final BasicFanInEventProcessor<E> processor = new BasicFanInEventProcessor<E>(top, bottom, combiner);
       return new EpnNode<>(root, processor, new TerminalFanInEpnNode<E>(root, top, bottom) );
     }
     
