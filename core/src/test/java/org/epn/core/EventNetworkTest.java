@@ -3,6 +3,7 @@ package org.epn.core;
 import static org.junit.Assert.assertArrayEquals;
 
 import org.epn.core.net.EventNetwork;
+import org.epn.core.net.EventNetwork.Node;
 import org.epn.core.node.TestEventSink;
 import org.epn.core.node.TestEventSource;
 import org.junit.Test;
@@ -72,7 +73,7 @@ public class EventNetworkTest {
    *
    */
   @Test
-  public void sourceToFanOutThenFiltersThenSink() {
+  public void sourceToFanOutThenFiltersThenSinks() {
     final TestEventSource source = new TestEventSource();
     final TestEventSink sink1 = new TestEventSink();
     final TestEventSink sink2 = new TestEventSink();
@@ -129,18 +130,18 @@ public class EventNetworkTest {
   /**
    *<pre>
    *                                  
-   *  ________         _____________
-   * |        |       |             |        ________
-   * | Source | ----> | Transformer |       |        |        ________
-   * |________|       |_____________| ----> |        |       |        |
-   *  ________         _____________        |  Join  | ----> |  Sink  |
-   * |        |       |             | ----> |        |       |________|
-   * | Source | ----> | Transformer |       |________|
-   * |________|       |_____________|                         
+   *  ________        
+   * |        |         ________
+   * | Source |        |        |        ________
+   * |________| ---->  |        |       |        |
+   *  ________         |  Join  | ----> |  Sink  |
+   * |        | ---->  |        |       |________|
+   * | Source |        |________|
+   * |________|                                
    *
    */
   @Test
-  public void sourcesToTransformersThenFanInThenSink() {
+  public void sourcesToFanInThenSink() {
     final TestEventSource source1 = new TestEventSource(5);
     final TestEventSource source2 = new TestEventSource(5);
     final TestEventSink sink = new TestEventSink();
@@ -168,15 +169,15 @@ public class EventNetworkTest {
    */
   @Test
   public void sourcesToTransformersThenFanInWithCombinerThenSink() {
-    final TestEventSource source1 = new TestEventSource(10);
-    final TestEventSource source2 = new TestEventSource(10);
-    final TestEventSink sink = new TestEventSink();
+    final Node<String> node1 = EventNetwork.fromSource(new TestEventSource(5)).transform(e -> e.toString());
+    final Node<String> node2 = EventNetwork.fromSource(new TestEventSource(5)).transform(e -> e.toString());
+    final BasicEventSink<String> sink = new BasicEventSink<String>();
     
     EventNetwork
-      .join(source1, source2, (e1, e2) -> e1 + e2)
+      .join(node1, node2, (e1, e2) -> e1 + e2)
       .consumedBy(sink)
       .start();
       
-    assertArrayEquals(new Integer[] { 0, 2, 4, 6, 8, 10, 12, 14, 16, 18 }, sink.getData().toArray());
+    assertArrayEquals(new String[] { "00", "11", "22", "33", "44" }, sink.getData().toArray());
   }
 }
