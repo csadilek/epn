@@ -3,7 +3,7 @@ package org.epn.core;
 import static org.junit.Assert.assertArrayEquals;
 
 import org.epn.core.net.EventNetwork;
-import org.epn.core.net.EventNetwork.Node;
+import org.epn.core.net.EventNetwork.TypedNode;
 import org.epn.core.node.TestEventSink;
 import org.epn.core.node.TestEventSource;
 import org.junit.Test;
@@ -169,8 +169,8 @@ public class EventNetworkTest {
    */
   @Test
   public void sourcesToTransformersThenFanInWithCombinerThenSink() {
-    final Node<String> node1 = EventNetwork.fromSource(new TestEventSource(5)).transform(e -> e.toString());
-    final Node<String> node2 = EventNetwork.fromSource(new TestEventSource(5)).transform(e -> e.toString());
+    final TypedNode<String> node1 = EventNetwork.fromSource(new TestEventSource(5)).transform(e -> e.toString());
+    final TypedNode<String> node2 = EventNetwork.fromSource(new TestEventSource(5)).transform(e -> e.toString());
     final BasicEventSink<String> sink = new BasicEventSink<String>();
     
     EventNetwork

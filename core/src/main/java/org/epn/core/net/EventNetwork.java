@@ -33,18 +33,21 @@ public class EventNetwork {
     return fanInEpnNode.join();
   }
 
-  public static <E> EpnNode<E, TerminalFanInEpnNode<E>> join(final Node<E> top, final Node<E> bottom) {
+  public static <E> EpnNode<E, TerminalFanInEpnNode<E>> join(final TypedNode<E> top, final TypedNode<E> bottom) {
     final FanInEpnRootNode<E, TerminalEpnNode<E>> fanInRoot = new FanInEpnRootNode<>(top, bottom);
     return fanInRoot.join();
   }
 
-  public static <E> EpnNode<E, TerminalFanInEpnNode<E>> join(final Node<E> top, final Node<E> bottom,
+  public static <E> EpnNode<E, TerminalFanInEpnNode<E>> join(final TypedNode<E> top, final TypedNode<E> bottom,
       final BiFunction<E, E, E> combiner) {
     final FanInEpnRootNode<E, TerminalEpnNode<E>> fanInRoot = new FanInEpnRootNode<>(top, bottom);
     return fanInRoot.join(combiner);
   }
 
-  public interface Node<E> {
+  public interface Node {
+  };
+
+  public interface TypedNode<E> extends Node {
     default EventSource<?> getRoot() {
       return null;
     }
@@ -54,10 +57,14 @@ public class EventNetwork {
     }
   };
 
-  public static abstract class AbstractEpnNode<E, C extends Node<E>> implements Node<E> {
+  public static abstract class AbstractEpnNode<E, C extends Node> implements TypedNode<E> {
     protected EventSource<?> root;
     protected EventSource<E> source;
     protected C continuation;
+
+    protected AbstractEpnNode() {
+
+    }
 
     protected AbstractEpnNode(final EventSource<E> source) {
       this(source, source);
@@ -76,7 +83,7 @@ public class EventNetwork {
     }
   }
 
-  public static class EpnNode<E, C extends Node<E>> extends AbstractEpnNode<E, C> {
+  public static class EpnNode<E, C extends Node> extends AbstractEpnNode<E, C> {
 
     protected EpnNode(final EventSource<E> source) {
       super(source, source);
@@ -92,10 +99,10 @@ public class EventNetwork {
 
     public <O> EpnNode<O, C> processedBy(final EventProcessor<E, O> processor) {
       source.subscribe(processor);
-      return new EpnNode<O, C>(root, processor, continuation);
+      return new EpnNode<>(root, processor, continuation);
     }
 
-    public <O> EpnNode<E, C> filter(final Predicate<E> p) {
+    public EpnNode<E, C> filter(final Predicate<E> p) {
       final BasicEventFilter<E> filter = new BasicEventFilter<>(p);
       return this.processedBy(filter);
     }
@@ -106,18 +113,18 @@ public class EventNetwork {
       return this.processedBy(transformer);
     }
 
-    public <O> FanOutEpnTopNode<E, C> split() {
+    public FanOutEpnTopNode<E, C> split() {
       final BasicFanOutEventProcessor<E> processor = new BasicFanOutEventProcessor<>();
       return split(processor);
     }
 
-    public <O> FanOutEpnTopNode<E, C> split(final Predicate<E> p) {
+    public FanOutEpnTopNode<E, C> split(final Predicate<E> p) {
       final BasicFanOutEventProcessor<E> processor = new BasicFanOutEventProcessor<>(
           e -> p.test(e) ? Outlet.TOP : Outlet.BOTTOM);
       return split(processor);
     }
 
-    public <O> FanOutEpnTopNode<E, C> split(final BasicFanOutEventProcessor<E> processor) {
+    public FanOutEpnTopNode<E, C> split(final BasicFanOutEventProcessor<E> processor) {
       source.subscribe(processor);
       return new FanOutEpnTopNode<>(root, continuation, processor.getTop(), processor.getBottom());
     }
@@ -143,7 +150,7 @@ public class EventNetwork {
 
   }
 
-  public static class TerminalEpnNode<E> implements Node<E> {
+  public static class TerminalEpnNode<E> implements Node {
     private final EventSource<?> root;
 
     public TerminalEpnNode(final EventSource<?> root) {
@@ -156,7 +163,7 @@ public class EventNetwork {
 
   }
 
-  public static class FanOutEpnTopNode<E, C extends Node<E>> extends AbstractEpnNode<E, C> {
+  public static class FanOutEpnTopNode<E, C extends Node> extends AbstractEpnNode<E, C> {
     private final EventSource<E> bottom;
 
     public FanOutEpnTopNode(final EventSource<?> root, final C continuation, final EventSource<E> top,
@@ -170,7 +177,7 @@ public class EventNetwork {
     }
   }
 
-  public static class FanOutEpnBottomNode<E, C extends Node<E>> extends AbstractEpnNode<E, C> {
+  public static class FanOutEpnBottomNode<E, C extends Node> extends AbstractEpnNode<E, C> {
     private final EventSource<E> top;
 
     public FanOutEpnBottomNode(final EventSource<?> root, final C continuation, final EventSource<E> top,
@@ -184,7 +191,7 @@ public class EventNetwork {
     }
   }
 
-  public static class FanInEpnNode<E, C extends Node<E>> extends AbstractEpnNode<E, C> {
+  public static class FanInEpnNode<E, C extends Node> extends AbstractEpnNode<E, C> {
     private final EventSource<E> top;
     private final EventSource<E> bottom;
 
@@ -197,12 +204,12 @@ public class EventNetwork {
 
     public EpnNode<E, TerminalFanInEpnNode<E>> join() {
       final BasicFanInEventProcessor<E> processor = new BasicFanInEventProcessor<>(top, bottom);
-      return new EpnNode<>(root, processor, new TerminalFanInEpnNode<E>(top, bottom));
+      return new EpnNode<>(root, processor, new TerminalFanInEpnNode<>(top, bottom));
     }
 
     public EpnNode<E, TerminalFanInEpnNode<E>> join(final BiFunction<E, E, E> combiner) {
       final BasicFanInEventProcessor<E> processor = new BasicFanInEventProcessor<>(top, bottom, combiner);
-      return new EpnNode<>(root, processor, new TerminalFanInEpnNode<E>(top, bottom));
+      return new EpnNode<>(root, processor, new TerminalFanInEpnNode<>(top, bottom));
     }
 
     public void start() {
@@ -210,18 +217,18 @@ public class EventNetwork {
     }
   }
 
-  public static class FanInEpnRootNode<E, C extends Node<E>> extends AbstractEpnNode<E, C> {
-    private final Node<E> top;
-    private final Node<E> bottom;
+  public static class FanInEpnRootNode<E, C extends Node> extends AbstractEpnNode<E, C> {
+    private final TypedNode<E> top;
+    private final TypedNode<E> bottom;
 
-    public FanInEpnRootNode(final Node<E> top, final Node<E> bottom) {
-      super(top.getSource());
+    public FanInEpnRootNode(final TypedNode<E> top, final TypedNode<E> bottom) {
       this.top = top;
       this.bottom = bottom;
     }
 
     public EpnNode<E, TerminalFanInEpnNode<E>> join() {
-      final BasicFanInEventProcessor<E> processor = new BasicFanInEventProcessor<>(top.getSource(), bottom.getSource());
+      final BasicFanInEventProcessor<E> processor = new BasicFanInEventProcessor<E>(top.getSource(),
+          bottom.getSource());
       return new EpnNode<>(root, processor, new TerminalFanInEpnNode<>(top.getRoot(), bottom.getRoot()));
     }
 
@@ -236,7 +243,7 @@ public class EventNetwork {
     }
   }
 
-  public static class TerminalFanInEpnNode<E> implements Node<E> {
+  public static class TerminalFanInEpnNode<E> implements Node {
     private final Collection<EventSource<?>> roots = new ArrayList<>();
 
     public TerminalFanInEpnNode(final EventSource<?>... roots) {
