@@ -1,0 +1,49 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Your network: {{name}}</title>
+
+    <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.1/vis.min.css" rel="stylesheet" type="text/css" />
+    <script type="text/javascript" src="epn.json"></script>
+
+    <style type="text/css">
+      #mynetwork {
+        width: 1024px;
+        height: 600px;
+        background-color:#FFFFFF;
+      }
+    </style>
+  </head>
+  
+  <body>
+    <div id="mynetwork"></div>
+  
+    <script type="text/javascript">
+      var nodes = new vis.DataSet(_nodes);
+      var edges = new vis.DataSet(_edges);
+
+      var container = document.getElementById('mynetwork');
+      var data = {
+        nodes: nodes,
+        edges: edges
+      };
+      var options = {
+        nodes: {
+          borderWidth:2,
+          size:100,
+          color: {
+            border: '#FF6600',
+    	    background: '#666666',
+    	    highlight: '#FF6600'
+    	  },    	  
+          font:{color:'#eeeeee'}
+        },
+    	  edges: {
+    	    color: 'lightgray'
+    	  }
+      };
+      var network = new vis.Network(container, data, options);
+    </script>
+  </body>
+</html>
