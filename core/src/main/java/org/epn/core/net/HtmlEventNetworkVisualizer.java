@@ -17,42 +17,6 @@ import org.epn.core.net.EventNetwork.TypedNode;
 public class HtmlEventNetworkVisualizer implements EventNetworkVisualizer {
   private static final String HTML_TEMPLATE;
 
-  public static class Edge {
-
-    int from;
-    int to;
-
-    public Edge(final int from, final int to) {
-      this.from = from;
-      this.to = to;
-    }
-
-    @Override
-    public int hashCode() {
-      final int prime = 31;
-      int result = 1;
-      result = prime * result + from;
-      result = prime * result + to;
-      return result;
-    }
-
-    @Override
-    public boolean equals(final Object obj) {
-      if (this == obj)
-        return true;
-      if (obj == null)
-        return false;
-      if (getClass() != obj.getClass())
-        return false;
-      final Edge other = (Edge) obj;
-      if (from != other.from)
-        return false;
-      if (to != other.to)
-        return false;
-      return true;
-    }
-  }
-
   private final Map<TypedNode<?>, Integer> nodeIds = new HashMap<>();
   private final Map<Integer, String> nodes = new HashMap<>();
   private final Set<Edge> edges = new HashSet<>();
@@ -89,7 +53,7 @@ public class HtmlEventNetworkVisualizer implements EventNetworkVisualizer {
       edges.add(new Edge(id, childId));
     }
 
-    process(node.getParent(), id);
+    node.getParents().forEach(p -> process(p, id));
   }
 
   private void writeFiles(final String networkName) {
@@ -122,6 +86,42 @@ public class HtmlEventNetworkVisualizer implements EventNetworkVisualizer {
 
     final File file = new File(tmp.toString(), "epn.json");
     FileUtils.writeStringToFile(file, sb.toString(), "UTF-8");
+  }
+
+  private static class Edge {
+
+    int from;
+    int to;
+
+    public Edge(final int from, final int to) {
+      this.from = from;
+      this.to = to;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + from;
+      result = prime * result + to;
+      return result;
+    }
+
+    @Override
+    public boolean equals(final Object obj) {
+      if (this == obj)
+        return true;
+      if (obj == null)
+        return false;
+      if (getClass() != obj.getClass())
+        return false;
+      final Edge other = (Edge) obj;
+      if (from != other.from)
+        return false;
+      if (to != other.to)
+        return false;
+      return true;
+    }
   }
 
 }

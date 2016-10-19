@@ -43,10 +43,10 @@ public class EventNetworkTest {
   
   /**
    *<pre>
-   * ________         ________         _____________         ________
-   *|        |       |        |       |             |       |        | 
-   *| Source | ----> | Filter | ----> | Transformer | ----> |  Sink  |
-   *|________|       |________|       |_____________|       |________|
+   * ________         ________         _____________         _____________         ________
+   *|        |       |        |       |             |       |             |       |        | 
+   *| Source | ----> | Filter | ----> | Transformer | ----> | Transformer | ----> |  Sink  |
+   *|________|       |________|       |_____________|       |_____________|       |________|
    *
    */
   @Test
@@ -126,17 +126,20 @@ public class EventNetworkTest {
     final TestEventSink sink1 = new TestEventSink();
     final TestEventSink sink2 = new TestEventSink();
 
-    Epn
-      .named("FanOutWithSelectorsAndFilters")
-      .fromSource(source)
-      .split(i -> (i % 2 == 0))
-      .top()
-        .filter(i -> i < 10)
-        .consumedBy(sink1)
-      .bottom()
-        .filter(i -> i >= 10 && i < 20)
-        .consumedBy(sink2)        
-      .start();
+    final EventNetwork n =
+      Epn
+        .named("FanOutWithSelectorsAndFilters")
+        .fromSource(source)
+        .split(i -> (i % 2 == 0))
+        .top()
+          .filter(i -> i < 10)
+          .consumedBy(sink1)
+        .bottom()
+          .filter(i -> i >= 10 && i < 20)
+          .consumedBy(sink2)
+        .start();
+    
+    new HtmlEventNetworkVisualizer().visualize(n);
 
     assertArrayEquals(new Integer[] { 0, 2, 4, 6, 8 }, sink1.getData().toArray());
     assertArrayEquals(new Integer[] { 11, 13, 15, 17, 19 }, sink2.getData().toArray());
@@ -161,11 +164,14 @@ public class EventNetworkTest {
     final TestEventSource source2 = new TestEventSource(5);
     final TestEventSink sink = new TestEventSink();
     
-    Epn
-      .named("FanIn")
-      .join(source1, source2)
-      .consumedBy(sink)
-      .start();
+    final EventNetwork n =
+      Epn
+        .named("FanIn")
+        .join(source1, source2)        
+        .consumedBy(sink)    
+        .start();
+    
+    new HtmlEventNetworkVisualizer().visualize(n);
       
     assertArrayEquals(new Integer[] { 0, 0, 1, 1, 2, 2, 3, 3, 4, 4 }, sink.getData().toArray());
   }
@@ -189,11 +195,14 @@ public class EventNetworkTest {
     final TypedNode<String> node2 = Epn.create().fromSource(new TestEventSource(5)).transform(e -> e.toString());
     final BasicEventSink<String> sink = new BasicEventSink<String>();
     
-    Epn
-      .named("TransformersAndFanIn")
-      .join(node1, node2, (e1, e2) -> e1 + e2)
-      .consumedBy(sink)
-      .start();
+    final EventNetwork n =
+      Epn
+        .named("TransformersAndFanIn")
+        .join(node1, node2, (e1, e2) -> e1 + e2)
+        .consumedBy(sink)
+        .start();
+    
+    new HtmlEventNetworkVisualizer().visualize(n);
       
     assertArrayEquals(new String[] { "00", "11", "22", "33", "44" }, sink.getData().toArray());
   }
